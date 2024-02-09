@@ -109,17 +109,18 @@ internal class Server
                 AddressFamily.InterNetwork,
                 SocketType.Stream,
                 ProtocolType.Tcp);
-        try
+        while (!this.config.CancelToken.IsCancellationRequested)
         {
-            while (!this.config.CancelToken.IsCancellationRequested)
+            try
             {
                 await client.ConnectAsync(new IPEndPoint(IPAddress.Parse(podIp), 11_000), this.config.CancelToken);
                 return client;
+            
             }
-        }
-        catch (SocketException)
-        {
-            await Task.Delay(200);
+            catch (SocketException)
+            {
+                await Task.Delay(200);
+            }
         }
 
         throw new OperationCanceledException();
