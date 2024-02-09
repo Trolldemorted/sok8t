@@ -44,7 +44,7 @@ internal class Server
     {
         this.logger.LogDebug($"HandleClient {client.RemoteEndPoint}");
         var name = GenerateContainerName(client.RemoteEndPoint!);
-        Socket destinationClient = null;
+        Socket? destinationClient = null;
         try
         {
             var body = new V1Pod()
@@ -113,9 +113,9 @@ internal class Server
         {
             try
             {
-                await client.ConnectAsync(new IPEndPoint(IPAddress.Parse(podIp), 11_000), this.config.CancelToken);
+                await client.ConnectAsync(new IPEndPoint(IPAddress.Parse(podIp), this.config.DestinationPort), this.config.CancelToken);
+                this.logger.LogDebug($"Successfully connected to destination pod {podIp}:{this.config.DestinationPort}");
                 return client;
-            
             }
             catch (SocketException)
             {
