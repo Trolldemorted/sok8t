@@ -8,11 +8,14 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
     - uses: actions/checkout@v1
     - name: Build image
       run: |
         echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
         docker build . -t sok8t
-        docker tag sok8t ghcr.io/trolldemorted/sok8t/sok8t:latest
-        docker push ghcr.io/trolldemorted/sok8t/sok8t:latest
+        docker tag sok8t ghcr.io/trolldemorted/sok8t/sok8t:nightly
+        docker push ghcr.io/trolldemorted/sok8t/sok8t:nightly
