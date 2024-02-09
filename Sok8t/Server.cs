@@ -12,22 +12,15 @@ using System.Xml.Linq;
 
 namespace Sok8t;
 
-internal class Server
+internal class Server(Config config, Kubernetes kubernetes, ILogger<Server> logger)
 {
-    private readonly Config config;
-    private readonly Kubernetes kubernetes;
-    private readonly ILogger<Server> logger;
-
-    public Server(Config config, Kubernetes kubernetes, ILogger<Server> logger)
-    {
-        this.config = config;
-        this.kubernetes = kubernetes;
-        this.logger = logger;
-    }
+    private readonly Config config = config;
+    private readonly Kubernetes kubernetes = kubernetes;
+    private readonly ILogger<Server> logger = logger;
 
     public async Task Run()
     {
-        TcpListener listener = new TcpListener(IPAddress.IPv6Any, config.LocalPort);
+        TcpListener listener = new(IPAddress.IPv6Any, config.LocalPort);
         listener.Server.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
         listener.Start();
         while (!config.CancelToken.IsCancellationRequested)
@@ -82,22 +75,46 @@ internal class Server
     private async Task BridgeSockets(Socket s1, Socket s2)
     {
         this.logger.LogDebug("Bridging sockets");
+        var bridgeCancelSource = new CancellationTokenSource();
+        var linkedToken = CancellationTokenSource.CreateLinkedTokenSource([bridgeCancelSource.Token, this.config.CancelToken]);
         var task1 = Task.Run(async () =>
         {
-            var buf = new byte[4096];
-            while (!this.config.CancelToken.IsCancellationRequested)
+            try
             {
-                var read = await s1.ReceiveAsync(buf);
-                await s2.SendAsync(buf.AsMemory().Slice(0, read), this.config.CancelToken);
+                var buf = new byte[4096];
+                while (!linkedToken.IsCancellationRequested)
+                {
+                    var read = await s1.ReceiveAsync(buf);
+                    if (read == 0)
+                    {
+                        throw new Exception("End of s1 stream");
+                    }
+                    await s2.SendAsync(buf.AsMemory()[..read], this.config.CancelToken);
+                }
+            }
+            catch (Exception)
+            {
+                bridgeCancelSource.Cancel();
             }
         });
         var task2 = Task.Run(async () =>
         {
-            var buf = new byte[4096];
-            while (!this.config.CancelToken.IsCancellationRequested)
+            try
             {
-                var read = await s2.ReceiveAsync(buf);
-                await s1.SendAsync(buf.AsMemory().Slice(0, read), this.config.CancelToken);
+                var buf = new byte[4096];
+                while (!linkedToken.IsCancellationRequested)
+                {
+                    var read = await s2.ReceiveAsync(buf);
+                    if (read == 0)
+                    {
+                        throw new Exception("End of s2 stream");
+                    }
+                    await s1.SendAsync(buf.AsMemory()[..read], this.config.CancelToken);
+                }
+            }
+            catch (Exception)
+            {
+                bridgeCancelSource.Cancel();
             }
         });
         await task1;
