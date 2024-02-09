@@ -1,0 +1,17 @@
+name: ci
+
+on:
+  push:
+    branches:
+    - "master"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Build image
+      run: |
+        echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+        docker build . -name sok8t
+        docker tag sok8t ghcr.io/Trolldemorted/sok8t/sok8t:latest
+        docker push ghcr.io/Trolldemorted/sok8t/sok8t:latest

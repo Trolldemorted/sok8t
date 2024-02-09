@@ -11,9 +11,19 @@ var config = new Config(
     "testns",
     cancelSource.Token);
 
+KubernetesClientConfiguration k8sConfig;
+if (KubernetesClientConfiguration.IsInCluster())
+{
+    k8sConfig = KubernetesClientConfiguration.InClusterConfig();
+}
+else
+{
+    k8sConfig = KubernetesClientConfiguration.BuildConfigFromConfigFile();
+}
+
 var serviceProvider = new ServiceCollection()
     .AddSingleton(config)
-    .AddSingleton(new Kubernetes(KubernetesClientConfiguration.BuildConfigFromConfigFile()))
+    .AddSingleton(new Kubernetes(k8sConfig))
     .AddSingleton<Server>()
     .AddLogging(loggingBuilder =>
     {
