@@ -76,20 +76,20 @@ internal class Server(Config config, Kubernetes kubernetes, ILogger<Server> logg
     {
         this.logger.LogDebug("Bridging sockets");
         var bridgeCancelSource = new CancellationTokenSource();
-        var linkedToken = CancellationTokenSource.CreateLinkedTokenSource([bridgeCancelSource.Token, this.config.CancelToken]);
+        var linkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource([bridgeCancelSource.Token, this.config.CancelToken]);
         var task1 = Task.Run(async () =>
         {
             try
             {
                 var buf = new byte[4096];
-                while (!linkedToken.IsCancellationRequested)
+                while (!linkedTokenSource.IsCancellationRequested)
                 {
-                    var read = await s1.ReceiveAsync(buf);
+                    var read = await s1.ReceiveAsync(buf, linkedTokenSource.Token);
                     if (read == 0)
                     {
                         throw new Exception("End of s1 stream");
                     }
-                    await s2.SendAsync(buf.AsMemory()[..read], this.config.CancelToken);
+                    await s2.SendAsync(buf.AsMemory()[..read], linkedTokenSource.Token);
                 }
             }
             catch (Exception)
@@ -102,14 +102,14 @@ internal class Server(Config config, Kubernetes kubernetes, ILogger<Server> logg
             try
             {
                 var buf = new byte[4096];
-                while (!linkedToken.IsCancellationRequested)
+                while (!linkedTokenSource.IsCancellationRequested)
                 {
-                    var read = await s2.ReceiveAsync(buf);
+                    var read = await s2.ReceiveAsync(buf, linkedTokenSource.Token);
                     if (read == 0)
                     {
                         throw new Exception("End of s2 stream");
                     }
-                    await s1.SendAsync(buf.AsMemory()[..read], this.config.CancelToken);
+                    await s1.SendAsync(buf.AsMemory()[..read], linkedTokenSource.Token);
                 }
             }
             catch (Exception)
