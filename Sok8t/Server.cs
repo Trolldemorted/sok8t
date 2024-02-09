@@ -81,10 +81,11 @@ internal class Server
 
     private async Task BridgeSockets(Socket s1, Socket s2)
     {
+        this.logger.LogDebug("Bridging sockets");
         var task1 = Task.Run(async () =>
         {
             var buf = new byte[4096];
-            while (this.config.CancelToken.IsCancellationRequested)
+            while (!this.config.CancelToken.IsCancellationRequested)
             {
                 var read = await s1.ReceiveAsync(buf);
                 await s2.SendAsync(buf.AsMemory().Slice(0, read), this.config.CancelToken);
@@ -93,7 +94,7 @@ internal class Server
         var task2 = Task.Run(async () =>
         {
             var buf = new byte[4096];
-            while (this.config.CancelToken.IsCancellationRequested)
+            while (!this.config.CancelToken.IsCancellationRequested)
             {
                 var read = await s2.ReceiveAsync(buf);
                 await s1.SendAsync(buf.AsMemory().Slice(0, read), this.config.CancelToken);
@@ -101,6 +102,7 @@ internal class Server
         });
         await task1;
         await task2;
+        this.logger.LogDebug("Bridging sockets done");
     }
 
     private async Task<Socket> WaitForPodConnection(string podIp)
