@@ -70,7 +70,7 @@ internal class Server(Config config, Kubernetes kubernetes, ILogger<Server> logg
         client.Dispose();
         destinationClient?.Dispose();
         await this.DeletePod(name);
-        this.logger.LogDebug($"HandleClients {client.RemoteEndPoint}");
+        this.logger.LogDebug($"HandleClients {client.RemoteEndPoint} done");
     }
 
     private async Task BridgeSockets(Socket s1, Socket s2)
