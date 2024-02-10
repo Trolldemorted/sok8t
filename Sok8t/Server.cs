@@ -44,14 +44,16 @@ internal class Server(Config config, Kubernetes kubernetes, ILogger<Server> logg
         Socket? destinationClient = null;
         try
         {
+            var labels = new Dictionary<string, string>()
+            {
+                { SOK8T_POD_LABEL_NAME, SOK8T_WORKER },
+            };
             var body = new V1Pod()
             {
                 Metadata = new V1ObjectMeta()
                 {
                     Name = name,
-                    Labels = {
-                        { SOK8T_POD_LABEL_NAME, SOK8T_WORKER },
-                    },
+                    Labels = labels,
                 },
                 Spec = new V1PodSpec()
                 {
@@ -77,7 +79,7 @@ internal class Server(Config config, Kubernetes kubernetes, ILogger<Server> logg
         }
         client.Dispose();
         destinationClient?.Dispose();
-        await this.DeletePod(name);
+        await this.TryDeletePod(name);
         this.logger.LogDebug($"HandleClients {endpoint} done");
     }
 
@@ -136,17 +138,25 @@ internal class Server(Config config, Kubernetes kubernetes, ILogger<Server> logg
         var pods = await this.kubernetes.CoreV1.ListNamespacedPodAsync(this.config.Namespace);
         foreach (var pod in pods)
         {
-            if (pod.Labels().TryGetValue(SOK8T_POD_LABEL_NAME, out string? podType) && podType == SOK8T_WORKER)
+            var labels = pod.Metadata?.Labels;
+            if (labels != null && labels.TryGetValue(SOK8T_POD_LABEL_NAME, out string? podType) && podType == SOK8T_WORKER)
             {
-                await this.DeletePod(pod.Name());
+                await this.TryDeletePod(pod.Name());
             }
         }
     }
 
-    private async Task DeletePod(string name)
+    private async Task TryDeletePod(string name)
     {
         this.logger.LogDebug($"Deleting pod {name}");
-        await this.kubernetes.DeleteNamespacedPodAsync(name, this.config.Namespace);
+        try
+        {
+            await this.kubernetes.DeleteNamespacedPodAsync(name, this.config.Namespace);
+        }
+        catch (Exception e)
+        {
+            this.logger.LogWarning($"Failed to delete pod {name}: {e}");
+        }
     }
 
     private async Task<Socket> WaitForPodConnection(string podIp)
