@@ -12,7 +12,7 @@ class Program
     {
         Argument<int> localPortArgument = new(name: "localPort", description: "The local port to listen on", getDefaultValue: () => 8000);
         Argument<int> remotePortArgument = new(name: "targetPort", description: "The target port to connect to");
-        Argument<string> namespaceArgument = new(name: "namespace", description: "The target port to connect to");
+        Argument<string> namespaceArgument = new(name: "namespace", description: "The namespace to use");
         Argument<string> imageArgument = new(name: "image", description: "The image to start");
         Option<string?> imagePullSecretOption = new(name: "--imagePullSecret", description: "Pull secret to fetch image");
 

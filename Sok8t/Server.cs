@@ -22,6 +22,7 @@ internal class Server(Config config, Kubernetes kubernetes, ILogger<Server> logg
 
     public async Task Run()
     {
+        this.logger.LogDebug($"Running with configuration: {this.config}");
         await this.ClearNamespace();
         TcpListener listener = new(IPAddress.IPv6Any, config.LocalPort);
         listener.Server.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
