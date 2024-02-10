@@ -27,7 +27,6 @@ internal class Server(Config config, Kubernetes kubernetes, ILogger<Server> logg
         {
             Socket client = await listener.AcceptSocketAsync(config.CancelToken);
             this.HandleClient(client);
-
         }
 
         this.logger.LogInformation("Server finished");
@@ -70,6 +69,8 @@ internal class Server(Config config, Kubernetes kubernetes, ILogger<Server> logg
         }
         client.Dispose();
         destinationClient?.Dispose();
+        await this.DeletePod(name);
+        this.logger.LogDebug($"HandleClients {client.RemoteEndPoint}");
     }
 
     private async Task BridgeSockets(Socket s1, Socket s2)
@@ -119,7 +120,12 @@ internal class Server(Config config, Kubernetes kubernetes, ILogger<Server> logg
         });
         await task1;
         await task2;
-        this.logger.LogDebug("Bridging sockets done");
+    }
+
+    private async Task DeletePod(string name)
+    {
+        this.logger.LogDebug($"Deleting pod {name}");
+        await this.kubernetes.DeleteNamespacedPodAsync(name, this.config.Namespace);
     }
 
     private async Task<Socket> WaitForPodConnection(string podIp)
@@ -133,7 +139,7 @@ internal class Server(Config config, Kubernetes kubernetes, ILogger<Server> logg
             try
             {
                 await client.ConnectAsync(new IPEndPoint(IPAddress.Parse(podIp), this.config.DestinationPort), this.config.CancelToken);
-                this.logger.LogDebug($"Successfully connected to destination pod {podIp}:{this.config.DestinationPort}");
+                this.logger.LogDebug($"Successfully connected to pod service {podIp}:{this.config.DestinationPort}");
                 return client;
             }
             catch (SocketException)
