@@ -34,8 +34,9 @@ internal class Server(Config config, Kubernetes kubernetes, ILogger<Server> logg
 
     private async void HandleClient(Socket client)
     {
-        this.logger.LogDebug($"HandleClient {client.RemoteEndPoint}");
-        var name = GenerateContainerName(client.RemoteEndPoint!);
+        var endpoint = client.RemoteEndPoint!;
+        this.logger.LogDebug($"HandleClient {endpoint}");
+        var name = GenerateContainerName(endpoint);
         Socket? destinationClient = null;
         try
         {
@@ -70,7 +71,7 @@ internal class Server(Config config, Kubernetes kubernetes, ILogger<Server> logg
         client.Dispose();
         destinationClient?.Dispose();
         await this.DeletePod(name);
-        this.logger.LogDebug($"HandleClients {client.RemoteEndPoint} done");
+        this.logger.LogDebug($"HandleClients {endpoint} done");
     }
 
     private async Task BridgeSockets(Socket s1, Socket s2)
