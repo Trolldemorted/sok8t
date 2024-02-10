@@ -14,15 +14,19 @@ namespace Sok8t;
 
 internal class Server(Config config, Kubernetes kubernetes, ILogger<Server> logger)
 {
+    const string SOK8T_POD_LABEL_NAME = "SOK8T_POD_TYPE";
+    const string SOK8T_WORKER = "worker";
     private readonly Config config = config;
     private readonly Kubernetes kubernetes = kubernetes;
     private readonly ILogger<Server> logger = logger;
 
     public async Task Run()
     {
+        await this.ClearNamespace();
         TcpListener listener = new(IPAddress.IPv6Any, config.LocalPort);
         listener.Server.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
         listener.Start();
+        this.logger.LogInformation("Accepting connections");
         while (!config.CancelToken.IsCancellationRequested)
         {
             Socket client = await listener.AcceptSocketAsync(config.CancelToken);
@@ -45,6 +49,9 @@ internal class Server(Config config, Kubernetes kubernetes, ILogger<Server> logg
                 Metadata = new V1ObjectMeta()
                 {
                     Name = name,
+                    Labels = {
+                        { SOK8T_POD_LABEL_NAME, SOK8T_WORKER },
+                    },
                 },
                 Spec = new V1PodSpec()
                 {
@@ -121,6 +128,19 @@ internal class Server(Config config, Kubernetes kubernetes, ILogger<Server> logg
         });
         await task1;
         await task2;
+    }
+
+    private async Task ClearNamespace()
+    {
+        this.logger.LogDebug("Clearing namespace");
+        var pods = await this.kubernetes.CoreV1.ListNamespacedPodAsync(this.config.Namespace);
+        foreach (var pod in pods)
+        {
+            if (pod.Labels().TryGetValue(SOK8T_POD_LABEL_NAME, out string? podType) && podType == SOK8T_WORKER)
+            {
+                await this.DeletePod(pod.Name());
+            }
+        }
     }
 
     private async Task DeletePod(string name)
