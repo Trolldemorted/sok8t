@@ -9,6 +9,7 @@ namespace Sok8t;
 internal record Config(
     int LocalPort,
     int DestinationPort,
-    string DestinationImage,
     string Namespace,
+    string DestinationImage,
+    string? ImagePullSecret,
     CancellationToken CancelToken);

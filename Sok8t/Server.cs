@@ -44,16 +44,21 @@ internal class Server(Config config, Kubernetes kubernetes, ILogger<Server> logg
         Socket? destinationClient = null;
         try
         {
-            var labels = new Dictionary<string, string>()
+            var workerLabels = new Dictionary<string, string>()
             {
                 { SOK8T_POD_LABEL_NAME, SOK8T_WORKER },
             };
+            List<V1LocalObjectReference>? imagePullSecrets = null;
+            if (config.ImagePullSecret is string imagePullSecret)
+            {
+                imagePullSecrets = [new V1LocalObjectReference(imagePullSecret)];
+            }
             var body = new V1Pod()
             {
                 Metadata = new V1ObjectMeta()
                 {
                     Name = name,
-                    Labels = labels,
+                    Labels = workerLabels,
                 },
                 Spec = new V1PodSpec()
                 {
@@ -64,7 +69,8 @@ internal class Server(Config config, Kubernetes kubernetes, ILogger<Server> logg
                             Image = this.config.DestinationImage,
                             Name = name,
                         }
-                    }
+                    },
+                    ImagePullSecrets = imagePullSecrets,
                 }
             };
             var pod = await this.kubernetes.CreateNamespacedPodAsync(body, this.config.Namespace, cancellationToken: this.config.CancelToken);

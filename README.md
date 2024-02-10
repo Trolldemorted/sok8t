@@ -39,6 +39,7 @@ spec:
   containers:
   - name: sok8t
     image: ghcr.io/trolldemorted/sok8t/sok8t:nightly
+    args: ["--localPort", "8000", "--targetPort", "80", "--namespace", "testns", "--image", "nginx"]
     ports:
     - containerPort: 8000
     imagePullPolicy: Always
