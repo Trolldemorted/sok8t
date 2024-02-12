@@ -52,6 +52,7 @@ internal class Server(Config config, Kubernetes kubernetes, ILogger<Server> logg
             List<V1LocalObjectReference>? imagePullSecrets = null;
             if (config.ImagePullSecret is string imagePullSecret)
             {
+                this.logger.LogDebug($"using imagePullSecret {imagePullSecret}");
                 imagePullSecrets = [new V1LocalObjectReference(imagePullSecret)];
             }
             var body = new V1Pod()
