@@ -1,4 +1,4 @@
-# soc8t
+# sok8t
 
 socat, but for k8s.
 
