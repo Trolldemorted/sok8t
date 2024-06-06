@@ -70,6 +70,7 @@ internal class Server(Config config, Kubernetes kubernetes, ILogger<Server> logg
                         {
                             Image = this.config.DestinationImage,
                             Name = name,
+                            ImagePullPolicy = this.config.ImagePullPolicy, 
                         }
                     },
                     ImagePullSecrets = imagePullSecrets,

@@ -15,6 +15,7 @@ class Program
         Argument<string> namespaceArgument = new(name: "namespace", description: "The namespace to use");
         Argument<string> imageArgument = new(name: "image", description: "The image to start");
         Option<string?> imagePullSecretOption = new(name: "--imagePullSecret", description: "Pull secret to fetch image");
+        Option<string?> imagePullPolicyOption = new(name: "--imagePullPolicy", description: "Pull policy for the image");
 
         RootCommand rootCommand = new("socat for kubernetes");
         rootCommand.AddArgument(localPortArgument);
@@ -22,12 +23,13 @@ class Program
         rootCommand.AddArgument(namespaceArgument);
         rootCommand.AddArgument(imageArgument);
         rootCommand.AddOption(imagePullSecretOption);
-        rootCommand.SetHandler(Run, localPortArgument, remotePortArgument, namespaceArgument, imageArgument, imagePullSecretOption);
+        rootCommand.AddOption(imagePullPolicyOption);
+        rootCommand.SetHandler(Run, localPortArgument, remotePortArgument, namespaceArgument, imageArgument, imagePullSecretOption, imagePullPolicyOption);
         await rootCommand.InvokeAsync(args);
         return 0;
     }
 
-    public static async Task Run(int localPort, int remotePort, string k8sNamespace, string image, string? imagePullSecret)
+    public static async Task Run(int localPort, int remotePort, string k8sNamespace, string image, string? imagePullSecret, string? imagePullPolicy)
     {
         var cancelSource = new CancellationTokenSource();
         var config = new Config(
@@ -36,6 +38,7 @@ class Program
             k8sNamespace,
             image,
             imagePullSecret,
+            imagePullPolicy,
             cancelSource.Token);
 
         KubernetesClientConfiguration k8sConfig;

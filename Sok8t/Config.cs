@@ -12,4 +12,5 @@ internal record Config(
     string Namespace,
     string DestinationImage,
     string? ImagePullSecret,
+    string? ImagePullPolicy,
     CancellationToken CancelToken);
